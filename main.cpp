@@ -1,6 +1,8 @@
 #include <iostream>
+#include <cstdio>
+#include <cstdlib>
 
-#define MAX_CHAR_SIZE 123
+
 #define BUFFER_SIZE 50
 
 //reads int from input stream
