@@ -1,7 +1,6 @@
-#include <iostream>
-#include <cstdio>
-#include <cstdlib>
-
+#include "stdio.h"
+#include "stdlib.h"
+#include "ctype.h"
 /*
 * exit codes:
 *  5 - invalid action
@@ -9,14 +8,29 @@
 
 #define BUFFER_SIZE 250
 
-enum Action{
+typedef enum action{
     ADDSTATION,
     RMVSTATION,
     ADDCAR,
     RMVCAR,
     PLANROUTE,
     ENDINPUT
-};
+}Action;
+
+typedef enum color {
+    RED,
+    BLACK
+}Color;
+
+typedef struct node* pNode;
+
+typedef struct node {
+    int key;
+    Color color;
+    pNode parent;
+    pNode left;
+    pNode right;
+}Node;
 
 //reads int from input stream, returns 0 if the input stream is empty, 1 otherwise and stores the int in number (when it returns 0 the last int is still stored in number)
 int readInt(int *number);
@@ -49,11 +63,21 @@ int main() {
                 exit(5);
         }
         while (readInt(&number) != 0) {
-            std::cout << "number: " << number << std::endl;
+            printf("number: %d\n", number);
         }
-        std::cout << "number: " << number << std::endl;
+        printf("number: %d\n", number);
     }
     return 0;
+}
+
+pNode generateNewNode(int key) {
+
+    pNode newNode = (pNode) malloc(sizeof(Node));
+    newNode->key = key;
+    newNode->parent = newNode->left = newNode->right = NULL;
+    newNode->color = RED;
+
+    return  newNode;
 }
 
 Action readAction() {
