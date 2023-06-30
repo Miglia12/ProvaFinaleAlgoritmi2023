@@ -6,6 +6,7 @@
 * exit codes:
 *  5 - invalid action
 *  6 - hash table too big
+*  7 - hash table too small
 */
 
 #define BUFFER_SIZE 250 //size of the buffer to read from input
@@ -20,6 +21,10 @@ typedef enum action{
     ENDINPUT
 }Action;
 
+typedef enum size{
+    INCREASE,
+    DECREASE
+}Size;
 /* Data Structures */
 
 /*
@@ -55,7 +60,7 @@ typedef struct node {
 typedef struct station {
     unsigned int stationID;
     pNode cars;
-    int probingDistance;
+    unsigned int probingDistance;
     //TODO: add adjacency list of stations
 }Station;
 
@@ -119,23 +124,33 @@ void leftRotate(pNode *root, pNode node);
  */
 void insertFix(pNode *root, pNode node);
 /*
- * Function: insert
+ * Function: treeInsert
  * Description: inserts a new node in the tree
  * Parameters:
  *   - root: pointer to the root of the tree
  *   - key: key of the new node
  * Returns: void
  */
-void insert(pNode *root, unsigned  int key);
+void treeInsert(pNode *root, unsigned  int key);
 /*
  * Function: removeNode
  * Description: removes a node from the tree
  * Parameters:
  *   - root: pointer to the root of the tree
  *   - key: of the node to remove
+ * Returns: 0 if the node was not found, 1 otherwise
+ */
+int removeNode(pNode* root, unsigned int key);
+/*
+ * Function: fixDelete
+ * Description: checks if any rotation is needed after removing a node
+ * Parameters:
+ *   - root: pointer to the root of the tree
+ *   - node: node to check if any rotation is needed
+ *   - parent: parent of the node
  * Returns: void
  */
-void removeNode(pNode* root, unsigned int key);
+void freeTree(pNode root);
 /*
  * Function: fixDelete
  * Description: checks if any rotation is needed after removing a node
@@ -167,10 +182,10 @@ unsigned int sizeToPrime(unsigned int size);
  * Description: multiplicative hashing function based on the size of the hash table
  * Parameters:
  *   - key: key to hash
- *   - hashMap: pointer to the hash table
+ *   - hashMapSize: size of the hash table, it will be automatically converted to a prime number
  * Returns: the hash value of the key
  */
-unsigned int hash(unsigned int key, pHashMap hashMap);
+unsigned int hash(unsigned int key, unsigned int hashMapSize);
 /*
  * Function: createHashMap
  * Description: creates a new hash table
@@ -181,10 +196,38 @@ pHashMap createHashMap();
  * Function: resize
  * Description: resizes the hash table to the next prime number
  * Parameters:
- *   - map: pointer to the hash table
+ *   - map: pointer to the hash
+ *   - size: choose if you want to increase or decrease the size of the hash table
  * Returns: void
  */
-void resize(pHashMap map);
+void resize(pHashMap map, Size size);
+/*
+ * Function: insertStation
+ * Description: inserts a new station in the hash table. If the hash table is too big, it resizes it. It is using robin hood hashing.
+ * Parameters:
+ *   - map: pointer to the hash table
+ *   - stationID: id of the station to insert
+ * Returns: pointer to the new station. NULL if the station already exists
+ */
+Station* insertStation(pHashMap map, unsigned int stationID);
+/*
+ * Function: searchStation
+ * Description: searches for a station in the hash table
+ * Parameters:
+ *   - map: pointer to the hash table
+ *   - stationID: id of the station to search
+ * Returns: pointer to the station if found, NULL otherwise
+ */
+Station* searchStation(pHashMap map, unsigned int stationID);
+/*
+ * Function: removeStation
+ * Description: removes a station from the hash table. it uses backward shifting to avoid clustering.
+ * Parameters:
+ *   - map: pointer to the hash table
+ *   - stationID: id of the station to remove
+ * Returns: void
+ */
+void removeStation(pHashMap map, unsigned int stationID);
 
 /* Global variables */
 //array of primes to use in the hash table and the hash function
@@ -195,48 +238,68 @@ unsigned int primes[] ={13, 31, 61, 127, 251, 509, 1021, 2039, 4093, 8191,
 
 int main() {
     Action action; //action to perform
-    unsigned int number; //number read from input
-    pNode root = NULL;
-    pHashMap map = createHashMap();
+    unsigned int carID; //number read from input
+    unsigned int stationID; //number read from input
+    pHashMap map = createHashMap(); //create the hash table
+    Station *station; //pointer to a station
 
     while ((action = readAction()) != ENDINPUT) {
         switch (action) {
-            case ADDSTATION:
-                printf("add station\n");
-                readInt(&number);
-                while (readInt(&number) != 0) {
-                    printf("number: %d\n", number);
+            case ADDSTATION: //the input said to add a station
+                readInt(&stationID); //read the station id
+                station = insertStation(map, stationID); //insert the station in the hash table
+                if(station == NULL){ //if the station was already in the hash table
+                    printf("non aggiunta\n");
                 }
-                printf("number: %d\n", number);
+                else{ //if the station was not in the hash table
+                    while (readInt(&carID) != 0) { //read the cars in the station until the last one is read
+                        treeInsert(&(station->cars), carID); //insert the car in the station
+                    }
+                    treeInsert(&(station->cars), carID); //insert the last car in the station
+                    printf("aggiunta\n");
+                }
                 break;
 
             case RMVSTATION:
-                printf("remove station\n");
-                while (readInt(&number) != 0) {
-                    printf("number: %d\n", number);
+                readInt(&stationID); //read the station id
+                station = searchStation(map, stationID); //search for the station in the hash table
+                if(station == NULL){ //if the station is not in the hash table
+                    printf("non demolita\n");
                 }
-                printf("number: %d\n", number);
+                else{ //if the station is in the hash table
+                    removeStation(map, stationID); //remove the station from the hash table
+                    printf("demolita\n");
+                }
                 break;
             case ADDCAR:
-                printf("add car\n");
-                while (readInt(&number) != 0) {
-                    printf("number: %d\n", number);
+                readInt(&stationID); //read the station id
+                station = searchStation(map, stationID); //search for the station in the hash table
+                if(station == NULL) {
+                    printf("non aggiunta\n");
+                } else {
+                    readInt(&carID); //read the car id
+                    treeInsert(&(station->cars), carID); //insert the car in the station
+                    printf("aggiunta\n");
                 }
-                printf("number: %d\n", number);
                 break;
             case RMVCAR:
-                printf("remove car\n");
-                while (readInt(&number) != 0) {
-                    printf("number: %d\n", number);
+                readInt(&stationID); //read the station id
+                station = searchStation(map, stationID); //search for the station in the hash table
+                if(station == NULL) {
+                    printf("non rottomata\n");
+                } else {
+                    readInt(&carID); //read the car id
+                    if(removeNode(&(station->cars), carID) == 0) { //the car was not in the station
+                        printf("non rottomata\n");
+                    } else { //the car was in the station
+                        printf("rottomata\n");
+                    }
                 }
-                printf("number: %d\n", number);
                 break;
             case PLANROUTE:
-                printf("plan route\n");
-                while (readInt(&number) != 0) {
-                    printf("number: %d\n", number);
-                }
-                printf("number: %d\n", number);
+                printf("piano\n");
+                readInt(&stationID); //read the station id
+                readInt(&stationID);
                 break;
             default:
                 printf("invalid action\n");
@@ -246,15 +309,128 @@ int main() {
     return 0;
 }
 
-void resize(pHashMap map) {
-    if(map->hashMapSize > MAX_SIZE_PRIMES){
-        exit(6);
+void removeStation(pHashMap map, unsigned int stationID) {
+    int backShiftingPerformed = 0; // flag to indicate if back shifting was performed
+    unsigned int hashValue = hash(stationID, map->hashMapSize); // calculate the hash value
+    unsigned int nextHashValue = (hashValue + 1) % sizeToPrime(map->hashMapSize); // hash value of the next station
+    while(map->stations[hashValue].stationID != 0) {
+        if(map->stations[hashValue].stationID == stationID) {
+            // Found the station with matching stationID, remove it
+            map->stations[hashValue].stationID = 0;
+            map->stations[hashValue].probingDistance = 0;
+            freeTree(map->stations[hashValue].cars);
+            map->stations[hashValue].cars = NULL;
+            //TODO: handle adjacency list
+            map->numStations--;
+            //shift the stations in the hash table to avoid clustering
+            while(map->stations[nextHashValue].stationID != 0 && map->stations[nextHashValue].probingDistance > 0) {
+                map->stations[hashValue].stationID = map->stations[nextHashValue].stationID;
+                map->stations[nextHashValue].probingDistance --;
+                hashValue = nextHashValue;
+                nextHashValue = (hashValue + 1) % sizeToPrime(map->hashMapSize);
+                backShiftingPerformed = 1;
+            }
+            if(backShiftingPerformed) { // if back shifting was performed, set the last station to 0
+                map->stations[hashValue].stationID = 0;
+                map->stations[hashValue].probingDistance = 0;
+                freeTree(map->stations[hashValue].cars);
+                map->stations[hashValue].cars = NULL;
+            }
+            if(map->numStations < sizeToPrime(map->hashMapSize) / 4 && sizeToPrime(map->hashMapSize)/4 > primes[0]) { // if the hash table is too big, resize it
+                resize(map, DECREASE);
+            }
+            return;
+        }
+        hashValue = (hashValue + 1) % sizeToPrime(map->hashMapSize);
     }
-    unsigned int oldSize = sizeToPrime(map->hashMapSize);
-    map->hashMapSize = map->hashMapSize++;
-    Station *oldStations = map->stations;
-    map->stations = calloc(sizeToPrime(map->hashMapSize), sizeof(Station));
-    //TODO: rehash the stations
+}
+
+Station* searchStation(pHashMap map, unsigned int stationID) {
+    unsigned int hashValue = hash(stationID, map->hashMapSize); // calculate the hash value
+    unsigned int probe = 0; // probe counter
+
+    while (map->stations[hashValue].stationID != 0 && map->stations[hashValue].probingDistance >= probe) {
+        if (map->stations[hashValue].stationID == stationID) {
+            // Found the station with matching stationID, return the pointer to the station
+            return &(map->stations[hashValue]);
+        }
+
+        // Linear probing: move to the next position in the hash table
+        hashValue = (hashValue + 1) % sizeToPrime(map->hashMapSize);
+        probe++;
+    }
+
+    // Station not found in the hash map
+    return NULL;
+}
+
+Station* insertStation(pHashMap map, unsigned int stationID) {
+    unsigned int probe = 0; //probe counter
+
+    if(map->numStations >= sizeToPrime(map->hashMapSize)* 0.75)//check if the hash table needs to be resized
+        resize(map, INCREASE);
+    unsigned int hashValue = hash(stationID, map->hashMapSize);//get the hash value
+
+    while(map->stations[hashValue].stationID != 0 && map->stations[hashValue].probingDistance <= probe){ //check if the position is empty or if the probing distance is less than the current probe
+        if(stationID == map->stations[hashValue].stationID) {//check if the station is already in the hash table
+            return NULL;
+        }
+
+        if(map->stations[hashValue].probingDistance < probe){//check if the probing distance is less than the current probe and swap the stations
+            // Swapping stations since current station has smaller probing distance
+            unsigned int tempID = map->stations[hashValue].stationID;
+            unsigned int tempProbe = map->stations[hashValue].probingDistance;
+            map->stations[hashValue].stationID = stationID;
+            map->stations[hashValue].probingDistance = probe;
+            stationID = tempID;
+            probe = tempProbe;
+        }
+        // Linear probing: move to the next position in the hash table
+        hashValue = (hashValue + 1) % sizeToPrime(map->hashMapSize);
+        probe++;
+    }
+    //found an empty position insert the station
+    map->stations[hashValue].stationID = stationID;
+    map->stations[hashValue].probingDistance = probe;
+    map->stations[hashValue].cars = NULL;
+    map->numStations++;
+
+    return &(map->stations[hashValue]);
+}
+
+void resize(pHashMap map, Size size) {
+    int i; //counter
+
+    if(map->hashMapSize > MAX_SIZE_PRIMES)//check if the hash table is already at max size
+        exit(6);
+    if(map->hashMapSize == 0)//check if the hash table is already at min size
+        exit(7);
+    unsigned int oldSize = sizeToPrime(map->hashMapSize);//get the old size
+
+    if(size == INCREASE) //increase the size
+    map->hashMapSize++;
+    else if(size == DECREASE) //decrease the size
+    map->hashMapSize--;
+
+    Station *oldStations = map->stations;   //save the old stations
+    map->stations = calloc(sizeToPrime(map->hashMapSize), sizeof(Station));//create the new hashmap
+
+    for(i = 0; i<oldSize; i++){//rehash the old stations
+        if(oldStations[i].stationID != 0){
+            unsigned int hashValue = hash(oldStations[i].stationID, map->hashMapSize);//get the new hash value
+
+            while(map->stations[hashValue].stationID != 0)//linear probing
+                hashValue = (hashValue + 1) % sizeToPrime(map->hashMapSize);
+
+            map->stations[hashValue].stationID = oldStations[i].stationID; //copy the station
+            map->stations[hashValue].cars = oldStations[i].cars; //copy the cars
+            //TODO: handle the adjacency list
+
+            map->numStations++; //increment the number of stations
+        }
+    }
+
+    free(oldStations); //free the old stations
 }
 
 pHashMap createHashMap() {
@@ -265,15 +441,13 @@ pHashMap createHashMap() {
     return map;
 }
 
-unsigned int hash(unsigned int key, pHashMap hashMap) {
-    // Get the prime number
-    unsigned int prime = sizeToPrime(hashMap->hashMapSize);
+unsigned int hash(unsigned int key, unsigned int hashMapSize) {
+    const float A = (float) 0.6180339887; // (sqrt(5) - 1) / 2
 
-    // Initialize the hash value
-    unsigned int hashValue = 0;
+    float product = (float) key * A;
+    float fractionalPart = product - (unsigned int)product;
 
-    // Perform the hash calculation
-    hashValue = prime * hashValue + key;
+    unsigned int hashValue = (unsigned int)(sizeToPrime(hashMapSize) * fractionalPart) % sizeToPrime(hashMapSize);
 
     return hashValue;
 }
@@ -293,7 +467,20 @@ unsigned int findMaxTree(pNode root) {
     }
     return current->key;
 }
-// Function to fix the Red-Black Tree after deletion
+
+void freeTree(pNode root) {
+    if (root == NULL) {
+        return;
+    }
+
+    // Free the left and right subtrees
+    freeTree(root->left);
+    freeTree(root->right);
+
+    // Free the current node
+    free(root);
+}
+
 void fixDelete(pNode* root, pNode node, pNode parent) {
     pNode sibling;
 
@@ -365,8 +552,7 @@ void fixDelete(pNode* root, pNode node, pNode parent) {
         node->color = BLACK;
 }
 
-// Function to remove a node from the Red-Black Tree
-void removeNode(pNode* root, unsigned int key) {
+int removeNode(pNode* root, unsigned int key) {
     pNode node = *root;
     pNode parent = NULL;
     pNode temp;
@@ -385,11 +571,11 @@ void removeNode(pNode* root, unsigned int key) {
     }
 
     if (node == NULL)// If the node with the given key is not found, return
-        return;
+        return 0;
 
     if(node->numCars > 1){// If the node has more than one car
         node->numCars--;
-        return;
+        return 1;
     }
 
     if (node->left == NULL || node->right == NULL)// If the node has only one child
@@ -423,9 +609,11 @@ void removeNode(pNode* root, unsigned int key) {
         fixDelete(root, temp, successor->parent);
 
     free(successor);
+
+    return 1;
 }
 
-void insert(pNode *root, unsigned int key) {// Function to insert a node into the Red-Black Tree
+void treeInsert(pNode *root, unsigned int key) {// Function to treeInsert a node into the Red-Black Tree
     pNode newNode = createNode(key);
 
     pNode y = NULL;
@@ -582,12 +770,10 @@ Action readAction() {
         else
             return ADDCAR;
     }
-    else if(buffer[0] == 'd') {
-
-        if(buffer[10] == 's') //check if the action is remove station or remove car
+    else if(buffer[0] == 'd') { //check if the action is remove station or remove car
             return RMVSTATION;
-        else
-            return RMVCAR;
+    } else if(buffer[0] == 'r') {
+        return RMVCAR;
     }
     else{ //if the action is not valid, exit the program
         exit(5);
