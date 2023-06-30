@@ -402,8 +402,9 @@ Station* insertStation(pHashMap map, unsigned int stationID) {
 
 void resize(pHashMap map, Size size) {
     int i; //counter
+    int probingDistance = 0; //probing distance
 
-    if(size == INCREASE && map->hashMapSize > MAX_SIZE_PRIMES)//check if the hash table is already at max size
+    if(size == INCREASE && map->hashMapSize >= MAX_SIZE_PRIMES)//check if the hash table is already at max size
         exit(6);
     if(size == DECREASE && map->hashMapSize == 0)//check if the hash table is already at min size
         exit(7);
@@ -419,13 +420,18 @@ void resize(pHashMap map, Size size) {
 
     for(i = 0; i<oldSize; i++){//rehash the old stations
         if(oldStations[i].stationID != 0){
-            unsigned int hashValue = hash(oldStations[i].stationID, map->hashMapSize);//get the new hash value
+            probingDistance = 0; //reset the probing distance
 
-            while(map->stations[hashValue].stationID != 0)//linear probing
+            unsigned int hashValue = hash(oldStations[i].stationID, map->hashMapSize);//get the new hash value
+            //TODO: implement linear probing
+            while(map->stations[hashValue].stationID != 0){//linear probing
                 hashValue = (hashValue + 1) % sizeToPrime(map->hashMapSize);
+                probingDistance++;
+            }
 
             map->stations[hashValue].stationID = oldStations[i].stationID; //copy the station
             map->stations[hashValue].cars = oldStations[i].cars; //copy the cars
+            map->stations[hashValue].probingDistance = probingDistance; //copy the probing distance
             //TODO: handle the adjacency list
 
             map->numStations++; //increment the number of stations
