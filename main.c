@@ -401,9 +401,9 @@ Station* insertStation(pHashMap map, unsigned int stationID) {
 void resize(pHashMap map, Size size) {
     int i; //counter
 
-    if(map->hashMapSize > MAX_SIZE_PRIMES)//check if the hash table is already at max size
+    if(size == INCREASE && map->hashMapSize > MAX_SIZE_PRIMES)//check if the hash table is already at max size
         exit(6);
-    if(map->hashMapSize == 0)//check if the hash table is already at min size
+    if(size == DECREASE && map->hashMapSize == 0)//check if the hash table is already at min size
         exit(7);
     unsigned int oldSize = sizeToPrime(map->hashMapSize);//get the old size
 
