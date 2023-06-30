@@ -252,10 +252,11 @@ int main() {
                     printf("non aggiunta\n");
                 }
                 else{ //if the station was not in the hash table
-                    while (readInt(&carID) != 0) { //read the cars in the station until the last one is read
+                    while (readInt(&carID) != 0 && carID != 0) { //read the cars in the station until the last one is read
                         treeInsert(&(station->cars), carID); //insert the car in the station
                     }
-                    treeInsert(&(station->cars), carID); //insert the last car in the station
+                    if(carID != 0)
+                        treeInsert(&(station->cars), carID); //insert the last car in the station
                     printf("aggiunta\n");
                 }
                 break;
@@ -286,6 +287,7 @@ int main() {
                 readInt(&stationID); //read the station id
                 station = searchStation(map, stationID); //search for the station in the hash table
                 if(station == NULL) {
+                    readInt(&carID);
                     printf("non rottomata\n");
                 } else {
                     readInt(&carID); //read the car id
