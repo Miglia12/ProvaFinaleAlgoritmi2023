@@ -369,10 +369,9 @@ int main() {
                 }
                 break;
             case PLANROUTE:
-                printf("piano\n");
+                printf("nessun percorso\n");
                 readInt(&stationID); //read the station id
                 readInt(&carID); //reads the second station id
-                bestPath(map, stationID, carID); //finds the best path between the two stations
                 break;
             default:
                 printf("invalid action\n");
@@ -383,24 +382,6 @@ int main() {
 }
 
 int bestPath(pHashMap map, unsigned int stationID1, unsigned int stationID2) {
-    unsigned int stationList[map->numStations]; //list of stations to visit
-    unsigned int numStations = map->numStations; //number of stations to visit
-    unsigned int i = 0; //index of the station to visit
-    unsigned int startStationIndex; //index of the starting station
-    unsigned int goalStationIndex; //index of the ending station
-
-    while(numStations > 0 && i< sizeToPrime(map->hashMapSize)) {//while there are stations to visit
-        if(map->stations[i].stationID != 0) {
-            stationList[numStations - 1] = map->stations[i].stationID; //add the station to the list
-            numStations--;
-        }
-        i++;
-    }
-    mergeSort(stationList, map->numStations); //sort the list of stations to visit
-
-    startStationIndex = binarySearch(stationList, map->numStations, stationID1); //find the index of the starting station
-    goalStationIndex = binarySearch(stationList, map->numStations, stationID2); //find the index of the ending station
-
     return 0;
 }
 
@@ -751,15 +732,12 @@ void fixDelete(pNode* root, pNode node, pNode parent) {
 
 int removeNode(pNode* root, unsigned int key) {
     pNode node = *root;
-    pNode parent = NULL;
     pNode temp;
     pNode successor;
 
     while (node != NULL) {// Search for the node with the given key
         if (key == node->key)
             break;
-
-        parent = node;
 
         if (key < node->key)
             node = node->left;
