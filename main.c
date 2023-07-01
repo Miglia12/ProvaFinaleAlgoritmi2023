@@ -228,6 +228,15 @@ Station* searchStation(pHashMap map, unsigned int stationID);
  * Returns: void
  */
 void removeStation(pHashMap map, unsigned int stationID);
+/*
+ * Function: testSearchStation
+ * Description: searches for a station in the hash table. It is used for testing purposes.
+ * Parameters:
+ *   - map: pointer to the hash table
+ *   - stationID: id of the station to search
+ * Returns: pointer to the station if found, NULL otherwise
+ */
+Station* testSearchStation(pHashMap map, unsigned int stationID);
 
 /* Global variables */
 //array of primes to use in the hash table and the hash function
@@ -249,6 +258,7 @@ int main() {
                 readInt(&stationID); //read the station id
                 station = insertStation(map, stationID); //insert the station in the hash table
                 if(station == NULL){ //if the station was already in the hash table
+                    while (readInt(&carID) != 0 && carID != 0); //WARNING: this is a workaround I'm not sure if I should add the cars or not
                     printf("non aggiunta\n");
                 }
                 else{ //if the station was not in the hash table
@@ -276,6 +286,7 @@ int main() {
                 readInt(&stationID); //read the station id
                 station = searchStation(map, stationID); //search for the station in the hash table
                 if(station == NULL) {
+                    readInt(&carID);
                     printf("non aggiunta\n");
                 } else {
                     readInt(&carID); //read the car id
@@ -292,9 +303,9 @@ int main() {
                 } else {
                     readInt(&carID); //read the car id
                     if(removeNode(&(station->cars), carID) == 0) { //the car was not in the station
-                        printf("non rottomata\n");
+                        printf("non rottamata\n");
                     } else { //the car was in the station
-                        printf("rottomata\n");
+                        printf("rottamata\n");
                     }
                 }
                 break;
@@ -369,11 +380,11 @@ Station* searchStation(pHashMap map, unsigned int stationID) {
 Station* insertStation(pHashMap map, unsigned int stationID) {
     unsigned int probe = 0; //probe counter
 
-    if(map->numStations >= sizeToPrime(map->hashMapSize)* 0.75)//check if the hash table needs to be resized
+    if(map->numStations >= sizeToPrime(map->hashMapSize)* 0.80)//check if the hash table needs to be resized
         resize(map, INCREASE);
     unsigned int hashValue = hash(stationID, map->hashMapSize);//get the hash value
 
-    while(map->stations[hashValue].stationID != 0 && map->stations[hashValue].probingDistance <= probe){ //check if the position is empty or if the probing distance is less than the current probe
+    while(map->stations[hashValue].stationID != 0){ //check if the position is empty or if the probing distance is less than the current probe
         if(stationID == map->stations[hashValue].stationID) {//check if the station is already in the hash table
             return NULL;
         }
@@ -424,7 +435,7 @@ void resize(pHashMap map, Size size) {
 
             unsigned int hashValue = hash(oldStations[i].stationID, map->hashMapSize);//get the new hash value
             //robin hood hashing
-            while(map->stations[hashValue].stationID != 0 && map->stations[hashValue].probingDistance <= probingDistance) {
+            while(map->stations[hashValue].stationID != 0) {
                 if(map->stations[hashValue].probingDistance < probingDistance){//check if the probing distance is less than the current probe and swap the stations
                     // Swapping stations since current station has smaller probing distance
                     unsigned int tempID = map->stations[hashValue].stationID;
@@ -828,5 +839,17 @@ int readInt(unsigned int *number) {
         return 0;
     else //there are some other number to check
         return 1;
+}
+
+Station* testSearchStation(pHashMap map, unsigned int stationID){
+    Station* station = NULL;
+
+    for(int i = 0; i < sizeToPrime(map->hashMapSize); i++){
+        if(map->stations[i].stationID == stationID){
+            station = &map->stations[i];
+            break;
+        }
+    }
+    return station;
 }
 
