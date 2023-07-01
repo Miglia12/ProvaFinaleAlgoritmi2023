@@ -288,7 +288,7 @@ int main() {
                 station = searchStation(map, stationID); //search for the station in the hash table
                 if(station == NULL) {
                     readInt(&carID);
-                    printf("non rottomata\n");
+                    printf("non rottamata\n");
                 } else {
                     readInt(&carID); //read the car id
                     if(removeNode(&(station->cars), carID) == 0) { //the car was not in the station
@@ -402,7 +402,7 @@ Station* insertStation(pHashMap map, unsigned int stationID) {
 
 void resize(pHashMap map, Size size) {
     int i; //counter
-    int probingDistance = 0; //probing distance
+    unsigned int probingDistance = 0; //probing distance
 
     if(size == INCREASE && map->hashMapSize >= MAX_SIZE_PRIMES)//check if the hash table is already at max size
         exit(6);
@@ -423,18 +423,31 @@ void resize(pHashMap map, Size size) {
             probingDistance = 0; //reset the probing distance
 
             unsigned int hashValue = hash(oldStations[i].stationID, map->hashMapSize);//get the new hash value
-            //TODO: implement linear probing
-            while(map->stations[hashValue].stationID != 0){//linear probing
+            //robin hood hashing
+            while(map->stations[hashValue].stationID != 0 && map->stations[hashValue].probingDistance <= probingDistance) {
+                if(map->stations[hashValue].probingDistance < probingDistance){//check if the probing distance is less than the current probe and swap the stations
+                    // Swapping stations since current station has smaller probing distance
+                    unsigned int tempID = map->stations[hashValue].stationID;
+                    unsigned int tempProbe = map->stations[hashValue].probingDistance;
+
+                    map->stations[hashValue].stationID = oldStations[i].stationID; //copy the station
+                    map->stations[hashValue].cars = oldStations[i].cars; //copy the cars
+                    map->stations[hashValue].probingDistance = probingDistance; //copy the probing distance
+                    oldStations[i].stationID = tempID;
+                    probingDistance = tempProbe;
+                }
+                // Linear probing: move to the next position in the hash table
                 hashValue = (hashValue + 1) % sizeToPrime(map->hashMapSize);
                 probingDistance++;
             }
 
-            map->stations[hashValue].stationID = oldStations[i].stationID; //copy the station
-            map->stations[hashValue].cars = oldStations[i].cars; //copy the cars
-            map->stations[hashValue].probingDistance = probingDistance; //copy the probing distance
+            //found an empty position insert the station
+            map->stations[hashValue].stationID = oldStations[i].stationID;
+            map->stations[hashValue].probingDistance = probingDistance;
+            map->stations[hashValue].cars = oldStations[i].cars;
+            map->numStations++; //increment the number of stations
             //TODO: handle the adjacency list
 
-            map->numStations++; //increment the number of stations
         }
     }
 
