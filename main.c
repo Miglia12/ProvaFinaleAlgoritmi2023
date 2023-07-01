@@ -229,6 +229,65 @@ Station* searchStation(pHashMap map, unsigned int stationID);
  */
 void removeStation(pHashMap map, unsigned int stationID);
 /*
+ * Function: merge
+ * Description: Merge two sorted sub arrays into one sorted array
+ * Parameters:
+ *   - arr: array to merge
+ *   - left: left sub array
+ *   - leftSize: size of the left sub array
+ *   - right: right sub array
+ *   - rightSize: size of the right sub array
+ * Returns: void
+ */
+void merge(unsigned int arr[], const unsigned int left[], unsigned int leftSize, const unsigned int right[], unsigned int rightSize);
+/*
+ * Function: mergeSort
+ * Description: Sorts an array using merge sort algorithm
+ * Parameters:
+ *   - arr: array to sort
+ *   - size: size of the array
+ * Returns: void
+ */
+void mergeSort(unsigned int arr[], unsigned int size);
+/*
+ * Function: binarySearch
+ * Description: searches for a target in a sorted array using binary search algorithm
+ * Parameters:
+ *   - arr: array to search
+ *   - size: size of the array
+ *   - target: target to search
+ * Returns: index of the target if found, -1 otherwise
+ */
+int binarySearch(const unsigned int arr[], int size, unsigned int target);
+/*
+ * Function: heuristic
+ * Description: calculates the heuristic value between two stations
+ * Parameters:
+ *   - stationID1: id of the first station
+ *   - goalStation: id of the goal station
+ * Returns: heuristic value
+ */
+unsigned int heuristic(unsigned int stationID1, unsigned int goalStationID);
+/*
+ * Function: cost
+ * Description: calculates the cost between two stations
+ * Parameters:
+ *   - stationID1: id of the first station
+ *   - stationID2: id of the second station
+ * Returns: cost value
+ */
+unsigned int cost(unsigned int stationID1, unsigned int stationID2);
+/*
+ * Function: bestPath
+ * Description: finds the best path between two stations. Using A* algorithm.
+ * Parameters:
+ *  - map: pointer to the hash table
+ *  - stationID1: id of the first station
+ *  - stationID2: id of the second station
+ *  Returns: 0 if the path was not found, 1 otherwise
+ */
+int bestPath(pHashMap map, unsigned int stationID1, unsigned int stationID2);
+/*
  * Function: testSearchStation
  * Description: searches for a station in the hash table. It is used for testing purposes.
  * Parameters:
@@ -312,7 +371,8 @@ int main() {
             case PLANROUTE:
                 printf("piano\n");
                 readInt(&stationID); //read the station id
-                readInt(&stationID);
+                readInt(&carID); //reads the second station id
+                bestPath(map, stationID, carID); //finds the best path between the two stations
                 break;
             default:
                 printf("invalid action\n");
@@ -320,6 +380,111 @@ int main() {
         }
     }
     return 0;
+}
+
+int bestPath(pHashMap map, unsigned int stationID1, unsigned int stationID2) {
+    unsigned int stationList[map->numStations]; //list of stations to visit
+    unsigned int numStations = map->numStations; //number of stations to visit
+    unsigned int i = 0; //index of the station to visit
+    unsigned int startStationIndex; //index of the starting station
+    unsigned int goalStationIndex; //index of the ending station
+
+    while(numStations > 0 && i< sizeToPrime(map->hashMapSize)) {//while there are stations to visit
+        if(map->stations[i].stationID != 0) {
+            stationList[numStations - 1] = map->stations[i].stationID; //add the station to the list
+            numStations--;
+        }
+        i++;
+    }
+    mergeSort(stationList, map->numStations); //sort the list of stations to visit
+
+    startStationIndex = binarySearch(stationList, map->numStations, stationID1); //find the index of the starting station
+    goalStationIndex = binarySearch(stationList, map->numStations, stationID2); //find the index of the ending station
+
+    return 0;
+}
+
+unsigned int cost(unsigned int stationID1, unsigned int stationID2) {
+    return abs((int)stationID1 - (int)stationID2);
+}
+
+unsigned int heuristic(unsigned int stationID1, unsigned int goalStationID) {
+    return abs((int)stationID1 - (int)goalStationID);
+}
+
+int binarySearch(const unsigned int arr[], int size, unsigned int target) {
+    int low = 0;
+    int high = size - 1;
+
+    while (low <= high) {
+        int mid = low + (high - low) / 2;  // Calculate the middle index
+
+        if (arr[mid] == target) {
+            return mid;  // Found the target, return the index
+        } else if (arr[mid] < target) {
+            low = mid + 1;  // Target is in the upper half
+        } else {
+            high = mid - 1;  // Target is in the lower half
+        }
+    }
+
+    return -1;  // Target not found
+}
+
+void mergeSort(unsigned int arr[], unsigned int size) {
+    if (size < 2) {
+        return; // Base case: the array is already sorted or empty
+    }
+
+    unsigned int mid = size / 2;
+    unsigned int left[mid];
+    unsigned int right[size - mid];
+
+    // Divide the array into two sub-arrays
+    for (unsigned int i = 0; i < mid; i++) {
+        left[i] = arr[i];
+    }
+    for (unsigned int i = mid; i < size; i++) {
+        right[i - mid] = arr[i];
+    }
+
+    // Recursively sort the two sub-arrays
+    mergeSort(left, mid);
+    mergeSort(right, size - mid);
+
+    // Merge the sorted sub-arrays
+    merge(arr, left, mid, right, size - mid);
+}
+
+void merge(unsigned int arr[], const unsigned int left[], unsigned int leftSize, const unsigned int right[], unsigned int rightSize) {
+    unsigned int i = 0; // Index for left subarray
+    unsigned int j = 0; // Index for right subarray
+    unsigned int k = 0; // Index for merged array
+
+    while (i < leftSize && j < rightSize) {
+        if (left[i] <= right[j]) {
+            arr[k] = left[i];
+            i++;
+        } else {
+            arr[k] = right[j];
+            j++;
+        }
+        k++;
+    }
+
+    // Copy the remaining elements of left subarray, if any
+    while (i < leftSize) {
+        arr[k] = left[i];
+        i++;
+        k++;
+    }
+
+    // Copy the remaining elements of right subarray, if any
+    while (j < rightSize) {
+        arr[k] = right[j];
+        j++;
+        k++;
+    }
 }
 
 void removeStation(pHashMap map, unsigned int stationID) {
