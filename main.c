@@ -413,7 +413,7 @@ Station* insertStation(pHashMap map, unsigned int stationID) {
 
 void resize(pHashMap map, Size size) {
     int i; //counter
-    unsigned int probingDistance = 0; //probing distance
+    unsigned int probingDistance; //probing distance
 
     if(size == INCREASE && map->hashMapSize >= MAX_SIZE_PRIMES)//check if the hash table is already at max size
         exit(6);
