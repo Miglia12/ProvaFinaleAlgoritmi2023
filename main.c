@@ -19,7 +19,6 @@ typedef enum action{
     PLANROUTE,
     ENDINPUT
 }Action;
-
 /* Data Structures */
 /*
  * Description: maxHeap struct to store the cars in the station
