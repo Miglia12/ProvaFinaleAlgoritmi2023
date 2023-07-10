@@ -9,7 +9,7 @@
 */
 
 #define BUFFER_SIZE 250 //size of the buffer to read from input
-#define MAX_SIZE_CARS 512 //maximum number of cars in a station
+#define MAX_SIZE_CARS 513 //maximum number of cars in a station
 
 typedef enum action{
     ADDSTATION,
