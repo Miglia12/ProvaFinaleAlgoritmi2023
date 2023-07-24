@@ -3,13 +3,18 @@
 #include "ctype.h"
 
 /*
-* exit codes:
-*  5 - invalid action
-*  6 - heap is full
+ * exit codes:
+ *  5 - invalid action
+ *  6 - heap is full
+ *  7 - vector not created
+ *  8 - getValuesInRange failed
+ *  9 - planRoute failed
+ *  10 - isInRange failed (same station checked)
 */
 
 #define BUFFER_SIZE 250 //size of the buffer to read from input
 #define MAX_SIZE_CARS 513 //maximum number of cars in a station
+#define VECTOR_SIZE_FACTOR 0.5 //factor to increase or decrease the initial size of the vector compared to the number of stations in the tree
 
 typedef enum action{
     ADDSTATION,
@@ -20,6 +25,53 @@ typedef enum action{
     ENDINPUT
 }Action;
 /* Data Structures */
+/*
+ * Description: struct to store maxRange and stationIndex (used in planRoute)
+ * Values:
+ *   - maxRange: sum of the maximum range of the cars in the station and the stationID
+ *   - second: index of the station in the vector
+ *   - next: pointer to the next Entry
+ */
+typedef struct entry {
+    unsigned int maxRange;
+    int stationIndex;
+    struct entry* next;
+}Entry;
+/*
+ * Description: pointer to an entry
+ */
+typedef struct entry* pEntry;
+/*
+ * Description: struct to store a Queue
+ * Values:
+ *   - numberOfElements: number of elements in the queue
+ *   - head: pointer to the first node
+ *   - tail: pointer to the last node
+ */
+typedef struct queue {
+    pEntry head;
+    pEntry tail;
+}Queue;
+/*
+ * Description: pointer to a queue
+ */
+typedef struct queue* pQueue;
+/*
+ * Description: struct to store a vector
+ * Values:
+ *   - size: size of the vector
+ *   - numberOfElements: number of elements in the vector
+ *   - array: array to store the elements of the vector
+ */
+typedef struct vector {
+    int size;
+    int numberOfElements;
+    unsigned int* array;
+}Vector;
+/*
+ * Description: pointer to a vector
+ */
+typedef struct vector* pVector;
 /*
  * Description: maxHeap struct to store the cars in the station
  * Values:
@@ -51,7 +103,7 @@ typedef struct station* pStation;
 /*
  * Description: struct to store a station
  * Values:
- *   - stationID: ID of the station
+ *   - pair1: ID of the station
  *   - cars: pointer to the maxHeap of the station that stores the cars
  *   - color: color of the node
  *   - parent: pointer to the parent of the node
@@ -83,36 +135,60 @@ int readInt(unsigned int *number);
  */
 Action readAction();
 /*
- * Function: merge
- * Description: Merge two sorted sub arrays into one sorted array
+ * Function: newQueue
+ * Description: creates a new queue
+ * Parameters: void
+ * Returns: pointer to the new queue
+ */
+pQueue newQueue();
+/*
+ * Function: enqueue
+ * Description: adds a new element to the queue
  * Parameters:
- *   - arr: array to merge
- *   - left: left sub array
- *   - leftSize: size of the left sub array
- *   - right: right sub array
- *   - rightSize: size of the right sub array
+ *   - queue: pointer to the queue
+ *   - maxRange: sum of the maximum range of the cars in the station and the stationID
+ *   - stationIndex: index of the station in the vector
  * Returns: void
  */
-void merge(unsigned int arr[], const unsigned int left[], unsigned int leftSize, const unsigned int right[], unsigned int rightSize);
+void enqueue(pQueue queue, unsigned int maxRange, int stationIndex);
 /*
- * Function: mergeSort
- * Description: Sorts an array using merge sort algorithm
+ * Function: dequeue
+ * Description: removes the first element from the queue
  * Parameters:
- *   - arr: array to sort
- *   - size: size of the array
+ *   - queue: pointer to the queue
+ * Returns: pointer to the removed element
+ */
+pEntry dequeue(pQueue queue);
+/*
+ * Function: freeQueue
+ * Description: frees the memory allocated for the queue
+ * Parameters:
+ *   - queue: pointer to the queue to free
  * Returns: void
  */
-void mergeSort(unsigned int arr[], unsigned int size);
+void freeQueue(pQueue queue);
 /*
- * Function: binarySearch
- * Description: searches for a target in a sorted array using binary search algorithm
+ * Function: newVector
+ * Description: creates a new vector
  * Parameters:
- *   - arr: array to search
- *   - size: size of the array
- *   - target: target to search
- * Returns: index of the target if found, -1 otherwise
+ *  - size: size of the vector
+ * Returns: pointer to the new vector
  */
-int binarySearch(const unsigned int arr[], int size, unsigned int target);
+Vector *newVector(int size);
+/*
+ * Function: freeVector
+ * Description: frees the memory allocated for the vector
+ * Parameters:
+ *   - vector: pointer to the vector to free
+ * Returns: void
+ */
+void freeVector(Vector* vector);
+/*
+ * Function: addVector
+ * Description: adds an element to the vector
+ * Returns: 1 if the element was added, 0 otherwise
+ */
+int addVector(Vector *vector, unsigned int value);
 /*
  * Function: createMaxHeap
  * Description: creates a new maxHeap
@@ -149,9 +225,9 @@ int removeCar(MaxHeap* maxHeap, unsigned int carID);
 void restoreHeapProperty(MaxHeap* maxHeap, int idx);
 /*
  * Function: createNode
- * Description: generates a new station with the given stationID for the red-black tree
+ * Description: generates a new station with the given pair1 for the red-black tree
  * Parameters:
- *   - stationID: stationID of the new station
+ *   - pair1: pair1 of the new station
  * Returns: pointer to the new station
  */
 pStation createNode(unsigned int stationID);
@@ -187,7 +263,7 @@ void insertFix(pStation *root, pStation node);
  * Description: inserts a new station in the tree
  * Parameters:
  *   - root: pointer to the root of the tree
- *   - stationID: stationID of the new station
+ *   - pair1: pair1 of the new station
  * Returns: pointer to the new station if it was added, NULL otherwise
  */
 pStation addStation(pStation *root, unsigned  int stationID);
@@ -196,7 +272,7 @@ pStation addStation(pStation *root, unsigned  int stationID);
  * Description: removes a station from the tree
  * Parameters:
  *   - root: pointer to the root of the tree
- *   - stationID: of the station to remove
+ *   - pair1: of the station to remove
  * Returns: 1 if the station was removed, 0 otherwise
  */
 int removeStation(pStation* root, unsigned int stationID);
@@ -219,8 +295,60 @@ void fixDelete(pStation* root, pStation node, pStation parent);
  * Returns: pointer to the station if found, NULL otherwise
  */
 pStation searchStation(pStation* root, unsigned int stationID);
+/*
+ * Function: getValuesInRange
+ * Description: gets all the stations in the given range
+ * Parameters:
+ *   - root: pointer to the root of the tree
+ *   - min: minimum value of the range
+ *   - max: maximum value of the range
+ *   - vector: vector to store the stations
+ * Returns: void
+ */
+void getValuesInRange(pStation root, unsigned int min, unsigned int max, pVector vector);
+/*
+ * Function: isInRange
+ * Description: checks if the given station is in the given range
+ * Parameters:
+ *   - start: start station
+ *   - startCar: car with the maximum range in the start station
+ *   - destination: destination station
+ * Returns: 1 if the station is in the range, 0 otherwise
+ */
+int isInRange(unsigned int start, unsigned int startCar, unsigned int destination);
+/*
+ * Function: planRouteReverseOrder
+ * Description: plans a route from the start station to the end station if the stations are in reverse order
+ * Parameters:
+ *   - root: pointer to the root of the tree
+ *   - start: start station
+ *   - end: end station
+ * Returns: 1 if the route was found, 0 otherwise
+ */
+int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end);
+/*
+ * Function: planRouteInOrder
+ * Description: plans a route from the start station to the end station if the stations are in order
+ * Parameters:
+ *   - currentStation: pointer to the currentStation of the tree
+ *   - start: start station
+ *   - end: end station
+ * Returns: 1 if the route was found, 0 otherwise
+ */
+int planRouteInOrder(pStation root, unsigned int start, unsigned int end);
+/*
+ * Function: planRoute
+ * Description: plans a route from the start station to the end station
+ * Parameters:
+ *   - root: pointer to the root of the tree
+ *   - start: start station
+ *   - end: end station
+ * Returns: 1 if the route was found, 0 otherwise
+ */
+void planRoute(pStation root, unsigned int start, unsigned int end);
 
 /* Global variables */
+unsigned int numberOfStations = 0; //number of stations in the tree
 
 int main() {
     Action action; //action to perform
@@ -285,9 +413,9 @@ int main() {
                 }
                 break;
             case PLANROUTE:
-                printf("nessun percorso\n");
                 readInt(&stationID); //read the station id
                 readInt(&carID); //reads the second station id
+                planRoute(root, stationID, carID); //plans the route
                 break;
             default:
                 printf("invalid action\n");
@@ -297,10 +425,126 @@ int main() {
     return 0;
 }
 
+int planRouteInOrder(pStation root, unsigned int start, unsigned int end) {
+    if(root == NULL)
+        return 0;
+
+    pStation currentStation = root;
+    pQueue maxRanges = newQueue();
+    pVector stations = newVector((int) (numberOfStations * VECTOR_SIZE_FACTOR));
+    pVector predecessors = newVector((int) (numberOfStations * VECTOR_SIZE_FACTOR));
+    unsigned int currentMaxRange;
+    unsigned int currentMaxStationIndex;
+    int index = 0;
+    pEntry entry;
+    pStation stack[numberOfStations];
+    int top = -1;
+
+    while (currentStation != NULL || top != -1) {
+        // Go down the left subtree if the current node's distance is less than or equal to the end of the range
+        while (currentStation != NULL && currentStation->stationID <= end) {
+            stack[++top] = currentStation;
+            if (currentStation->stationID < start) {
+                // Stop going down the left subtree if the current node's distance is less than the start of the range
+                break;
+            }
+            currentStation = currentStation->left;
+        }
+
+        if (top >= 0) {
+            currentStation = stack[top--];
+
+            // If the current node is within the range, find best path
+            if (currentStation->stationID >= start) {
+
+
+                if(currentStation->stationID == start) { //this takes care of the initialization
+                    addVector(predecessors, 0);
+                    addVector(stations, currentStation->stationID);
+                    currentMaxRange = currentStation->stationID + currentStation->cars->array[0];
+                    currentMaxStationIndex = 0;
+                } else {
+
+                    if(currentMaxRange < currentStation->stationID + currentStation->cars->array[0]) //fMax < fSi+1
+                        if(currentStation->stationID != end) //fMax > Si
+                            enqueue(maxRanges, currentStation->stationID + currentStation->cars->array[0], index);
+
+                    while(currentMaxRange < currentStation->stationID) {   //fMax < Si+1
+                        entry = dequeue(maxRanges);
+
+                        if(entry == NULL && currentMaxRange < currentStation->stationID) {
+                            freeVector(stations);
+                            freeVector(predecessors);
+                            freeQueue(maxRanges);
+                            return 0;
+                        }
+
+                        currentMaxRange = entry->maxRange;
+                        currentMaxStationIndex = entry->stationIndex;
+                    }
+
+                    addVector(stations, currentStation->stationID); //adds the station to the station list
+                    addVector(predecessors, currentMaxStationIndex);
+                }
+
+                index++;
+            }
+
+            currentStation = currentStation->right;
+        } else {
+            currentStation = NULL;
+        }
+    }
+
+    for(index = 0; index < stations->numberOfElements; index++) {
+        printf("\n STATION%d %u \n PREDECENTE %u \n", index, stations->array[index], predecessors->array[index]);
+    }
+    printf("\n");
+
+    freeVector(stations);
+    freeVector(predecessors);
+    freeQueue(maxRanges);
+    return 1;
+}
+
+
+void planRoute(pStation root, unsigned int start, unsigned int end) {
+    if(start == end) {
+        exit(9);
+    }
+    if(start > end) {
+        printf("nessun percorso\n");
+        return;
+    } else {
+        if(planRouteInOrder(root, start, end) == 0) {
+            printf("nessun percorso\n");
+            return;
+        }
+    }
+}
+
+int isInRange(unsigned int start, unsigned int startCar, unsigned int destination) {
+    if(start > destination) {
+        if (startCar >= start - destination) {
+            return 1;
+        } else {
+            return 0;
+        }
+    } else if(start < destination) {
+        if (startCar >= destination - start) {
+            return 1;
+        } else {
+            return 0;
+        }
+    } else {
+        exit(10);
+    }
+}
+
 pStation searchStation(pStation* root, unsigned int stationID) {
     pStation node = *root;
 
-    while (node != NULL) {// Search for the station with the given stationID
+    while (node != NULL) {// Search for the station with the given pair1
         if (stationID == node->stationID)
             break;
 
@@ -389,7 +633,7 @@ int removeStation(pStation* root, unsigned int stationID) {
     pStation temp;
     pStation successor;
 
-    while (node != NULL) {// Search for the station with the given stationID
+    while (node != NULL) {// Search for the station with the given pair1
         if (stationID == node->stationID)
             break;
 
@@ -399,7 +643,7 @@ int removeStation(pStation* root, unsigned int stationID) {
             node = node->right;
     }
 
-    if (node == NULL)// If the station with the given stationID is not found, return
+    if (node == NULL)// If the station with the given pair1 is not found, return
         return 0;
 
     if (node->left == NULL || node->right == NULL)// If the station has only one child
@@ -433,7 +677,7 @@ int removeStation(pStation* root, unsigned int stationID) {
         fixDelete(root, temp, successor->parent);
 
     free(successor);
-
+    numberOfStations--;
     return 1;
 }
 
@@ -443,7 +687,7 @@ pStation addStation(pStation* root, unsigned int stationID) {// Function to addS
     pStation y = NULL;
     pStation x = *root;
 
-    while (x != NULL) {// Search for the station with the given stationID
+    while (x != NULL) {// Search for the station with the given pair1
         y = x;
         if(stationID == x->stationID) {//WARNING: This is not specified in the assignment you may need to add the cars to the station
             return NULL;
@@ -465,6 +709,7 @@ pStation addStation(pStation* root, unsigned int stationID) {// Function to addS
     }
 
     insertFix(root, newNode);// Fix the tree
+    numberOfStations++;
     return newNode;
 }
 
@@ -655,82 +900,95 @@ pMaxHeap createMaxHeap() {
     return heap;
 }
 
-int binarySearch(const unsigned int arr[], int size, unsigned int target) {
-    int low = 0;
-    int high = size - 1;
-
-    while (low <= high) {
-        int mid = low + (high - low) / 2;  // Calculate the middle index
-
-        if (arr[mid] == target) {
-            return mid;  // Found the target, return the index
-        } else if (arr[mid] < target) {
-            low = mid + 1;  // Target is in the upper half
-        } else {
-            high = mid - 1;  // Target is in the lower half
-        }
+void freeQueue(pQueue queue) {
+    pEntry temp;
+    while((temp = dequeue(queue)) != NULL) {
+        free(temp);
     }
-
-    return -1;  // Target not found
+    free(queue);
 }
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "misc-no-recursion"
-void mergeSort(unsigned int arr[], unsigned int size) {
-    if (size < 2) {
-        return; // Base case: the array is already sorted or empty
-    }
+pEntry dequeue(pQueue queue) {
+    if(queue->head == NULL)
+        return NULL;
 
-    unsigned int mid = size / 2;
-    unsigned int left[mid];
-    unsigned int right[size - mid];
+    Entry* temp = queue->head;
 
-    // Divide the array into two sub-arrays
-    for (unsigned int i = 0; i < mid; i++) {
-        left[i] = arr[i];
-    }
-    for (unsigned int i = mid; i < size; i++) {
-        right[i - mid] = arr[i];
-    }
+    queue->head = queue->head->next;
 
-    // Recursively sort the two sub-arrays
-    mergeSort(left, mid);
-    mergeSort(right, size - mid);
+    if(queue->head == NULL)
+        queue->tail = NULL;
 
-    // Merge the sorted sub-arrays
-    merge(arr, left, mid, right, size - mid);
+    return temp;
 }
-#pragma clang diagnostic pop
 
-void merge(unsigned int arr[], const unsigned int left[], unsigned int leftSize, const unsigned int right[], unsigned int rightSize) {
-    unsigned int i = 0; // Index for left subarray
-    unsigned int j = 0; // Index for right subarray
-    unsigned int k = 0; // Index for merged array
+void enqueue(pQueue queue, unsigned int maxRange, int stationIndex) {
+    pEntry entry = (pEntry) malloc(sizeof(Entry));
+    entry->maxRange = maxRange;
+    entry->stationIndex = stationIndex;
+    entry->next = NULL;
 
-    while (i < leftSize && j < rightSize) {
-        if (left[i] <= right[j]) {
-            arr[k] = left[i];
-            i++;
-        } else {
-            arr[k] = right[j];
-            j++;
+    if(queue->head == NULL) {
+        queue->head = entry;
+        queue->tail = entry;
+        return;
+    }
+
+    queue->tail->next = entry;
+    queue->tail = entry;
+}
+
+pQueue newQueue() {
+    pQueue queue = (pQueue) malloc(sizeof(Queue));
+    queue->head = NULL;
+    queue->tail = NULL;
+    return queue;
+}
+
+int addVector(Vector *vector, unsigned int value) {
+
+    if(vector == NULL) {
+        exit(7);
+    }
+
+    if(vector->numberOfElements == vector->size) {
+        vector->size = vector->size * 2;
+        unsigned int* temp = (unsigned int*) realloc(vector->array, vector->size * sizeof(unsigned int));
+        if(temp == NULL) {
+            exit(7);
         }
-        k++;
+        vector->array = temp;
     }
 
-    // Copy the remaining elements of left subarray, if any
-    while (i < leftSize) {
-        arr[k] = left[i];
-        i++;
-        k++;
+    vector->array[vector->numberOfElements] = value;
+    vector->numberOfElements++;
+    return 1;
+}
+
+void freeVector(Vector* vector) {
+    if(vector != NULL) {
+        if(vector->array != NULL) {
+            free(vector->array); // Free the memory allocated for the array
+        }
+        free(vector); // Free the memory allocated for the vector itself
+    }
+}
+
+Vector *newVector(int size) {
+    pVector vector = (pVector) malloc(sizeof(Vector));
+    if(vector == NULL) {
+        exit(7);
     }
 
-    // Copy the remaining elements of right subarray, if any
-    while (j < rightSize) {
-        arr[k] = right[j];
-        j++;
-        k++;
+    vector->numberOfElements = 0;
+    vector->array = (unsigned int*) malloc(size * sizeof(unsigned int));
+
+    if(vector->array == NULL) {
+        exit(7);
     }
+    vector->size = size;
+
+    return vector;
 }
 
 Action readAction() {
