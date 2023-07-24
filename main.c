@@ -472,7 +472,7 @@ int planRouteInOrder(pStation root, unsigned int start, unsigned int end) {
                     while(currentMaxRange < currentStation->stationID) {   //fMax < Si+1
                         entry = dequeue(maxRanges);
 
-                        if(entry == NULL && currentMaxRange < currentStation->stationID) {
+                        if(entry == NULL) {
                             freeVector(stations);
                             freeVector(predecessors);
                             freeQueue(maxRanges);
