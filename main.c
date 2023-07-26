@@ -500,9 +500,9 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
                      * We check if the new station has a longer range than the current maximum range, in this case we save it.
                      * The queue allows us to be sure not to miss any station with a longer range than the current maximum range
                      */
-                    if(currentMinRange > (int) currentStation->stationID - (int) currentStation->cars->array[0])
+                    if(currentMinRange >= (int) currentStation->stationID - (int) currentStation->cars->array[0])
                         if(currentStation->stationID != end &&
-                        (bestCandidate.maxRange == -1 || (int) bestCandidate.maxRange > (int) currentStation->stationID - (int) currentStation->cars->array[0])) {
+                        (bestCandidate.maxRange == -1 || (int) bestCandidate.maxRange >= (int) currentStation->stationID - (int) currentStation->cars->array[0])) {
                             bestCandidate.maxRange = (int) currentStation->stationID - (int) currentStation->cars->array[0];
                             if(bestCandidate.maxRange < 0)
                                 bestCandidate.maxRange = 0;
