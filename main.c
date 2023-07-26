@@ -28,6 +28,16 @@ typedef enum action{
 /*
  * Description: struct to store maxRange and stationIndex (used in planRoute)
  * Values:
+ *  - maxRange: sum of the maximum range of the cars in the station and the stationID
+ *  - stationIndex: index of the station in the vector
+ */
+typedef struct pair{
+    int maxRange;
+    int stationIndex;
+}Pair;
+/*
+ * Description: struct to store maxRange and stationIndex (used in planRoute)
+ * Values:
  *   - maxRange: sum of the maximum range of the cars in the station and the stationID
  *   - second: index of the station in the vector
  *   - next: pointer to the next Entry
@@ -412,18 +422,18 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
         return 0;
 
     pStation currentStation = root;
-    // Create an empty queue that will be used to store the stations that have longer range than the current station
-    pQueue maxRanges = newQueue();
+    Pair bestCandidate;
+    bestCandidate.maxRange = -1;
+    bestCandidate.stationIndex = -1;
     // Create an empty vector that will be used to store all the stations in the range, allowing to retrieve each station at each step
     pVector stations = newVector((int) (numberOfStations * VECTOR_SIZE_FACTOR));
     // Create an empty vector that will be used to store the predecessors of each station. This will allow to retrieve the path at the end
     pVector predecessors = newVector((int) (numberOfStations * VECTOR_SIZE_FACTOR));
     // Create a variable to store the current maximum range, initialized to the start station
-    int currentMinRange;
+    int currentMinRange = TMP_MAX;
     // Create a variable to store the index of the station with the current maximum range, initialized to 0
-    unsigned int currentMinStationIndex;
+    unsigned int currentMinStationIndex = 0;
     int index = 0;
-    pEntry entry;
     pStation stack[numberOfStations];
     int topElementStack = -1;
 
@@ -452,47 +462,52 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
                     addVector(stations, currentStation->stationID);
                     currentMinRange = (int) currentStation->stationID - (int) currentStation->cars->array[0];
                     currentMinStationIndex = 0;
-                    printf("\nStart: %u - MinRange: %d\n", currentStation->stationID, currentMinRange);
+                    //printf("\nStart: %u - MinRange: %d\n", currentStation->stationID, currentMinRange);
                 } else {
                     //We immediately add the station to the list of stations so that we can retrieve it later
                     addVector(stations, currentStation->stationID);
-                    printf("\nStation: %u - MinRange: %d - fi: %d\n", currentStation->stationID, currentMinRange, (int) currentStation->stationID - (int) currentStation->cars->array[0]);
-                    /*
-                     * We check if the new station has a longer range than the current maximum range, in this case we save it in the queue.
-                     * The queue allows us to be sure not to miss any station with a longer range than the current maximum range
-                     */
-                    if(currentMinRange > (int) currentStation->stationID - (int) currentStation->cars->array[0])
-                        if(currentStation->stationID != end &&
-                        (maxRanges->tail == NULL || (int) maxRanges->tail->maxRange > (int) currentStation->stationID - (int) currentStation->cars->array[0])) {
-
-                            enqueue(maxRanges, (int) currentStation->stationID - (int) currentStation->cars->array[0], index);
-                            printf("Enqueued: %u - fi %d\n", currentStation->stationID, (int) currentStation->stationID - (int) currentStation->cars->array[0]);
-                        }
+                    //printf("\nStation: %u - fi: %d\n", currentStation->stationID, (int) currentStation->stationID - (int) currentStation->cars->array[0]);
 
                     /*
                      * When the current station cannot reach the next station,
                      * we dequeue the next possible route until a viable route is found or the queue is empty.
                      */
-                    while(currentMinRange > (int) currentStation->stationID) {
-                        entry = dequeue(maxRanges);
-                        //if the queue is empty there is no viable route
-                        if (entry == NULL) {
-                            printf("cannot reach station with %d\n", currentMinRange);
-                            free(entry);
+                    if((int) currentMinRange > (int) currentStation->stationID) {
+
+                        //if there is not the best candidate we stop
+                        if (bestCandidate.stationIndex == -1) {
+                            //printf("cannot reach station with %d\n", currentMinRange);
                             freeVector(stations);
                             freeVector(predecessors);
-                            freeQueue(maxRanges);
                             return 0;
                         }
-                        //if the queue is not empty we dequeue the next possible route and if we can reach it we update the current maximum range
-                        if (currentMinRange <= stations->array[entry->stationIndex]) {
-                            currentMinRange = (int) entry->maxRange;
-                            currentMinStationIndex = entry->stationIndex;
-                            printf("Dequeued: %u - MinRange: %d\n", stations->array[entry->stationIndex], currentMinRange);
+                        //if the best is present, we check if we can reach it and if we can we update the current minimum range
+                        if (currentMinRange <= (int) stations->array[bestCandidate.stationIndex]) {
+                            currentMinRange = bestCandidate.maxRange;
+                            currentMinStationIndex = bestCandidate.stationIndex;
+                            bestCandidate.stationIndex = -1;
+                            bestCandidate.maxRange = -1;
+                            //printf("Dequeued: %u - MinRange: %d\n", stations->array[bestCandidate.stationIndex], currentMinRange);
+                        } else {
+                            //printf("cannot reach station with %d\n", currentMinRange);
+                            freeVector(stations);
+                            freeVector(predecessors);
+                            return 0;
                         }
-
-                        free(entry);
                     }
+
+                    /*
+                     * We check if the new station has a longer range than the current maximum range, in this case we save it.
+                     * The queue allows us to be sure not to miss any station with a longer range than the current maximum range
+                     */
+                    if(currentMinRange > (int) currentStation->stationID - (int) currentStation->cars->array[0])
+                        if(currentStation->stationID != end &&
+                        (bestCandidate.maxRange == -1 || (int) bestCandidate.maxRange > (int) currentStation->stationID - (int) currentStation->cars->array[0])) {
+
+                            bestCandidate.maxRange = (int) currentStation->stationID - (int) currentStation->cars->array[0];
+                            bestCandidate.stationIndex = index;
+                            //printf("Enqueued: %u - fi %d\n", currentStation->stationID, (int) currentStation->stationID - (int) currentStation->cars->array[0]);
+                        }
 
                     addVector(predecessors, currentMinStationIndex);
                 }
@@ -512,6 +527,7 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
         addVector(path, stations->array[index]);
         index = (int) predecessors->array[index];
     }
+    addVector(path, stations->array[0]);
     for(index = path->numberOfElements - 1; index >= 0; index--){
         printf("%u ", path->array[index]);
     }
@@ -520,7 +536,6 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
     freeVector(path);
     freeVector(stations);
     freeVector(predecessors);
-    freeQueue(maxRanges);
     return 1;
 }
 
@@ -536,9 +551,9 @@ int planRouteInOrder(pStation root, unsigned int start, unsigned int end) {
     // Create an empty vector that will be used to store the predecessors of each station. This will allow to retrieve the path at the end
     pVector predecessors = newVector((int) (numberOfStations * VECTOR_SIZE_FACTOR));
     // Create a variable to store the current maximum range, initialized to the start station
-    unsigned int currentMaxRange;
+    unsigned int currentMaxRange = 0;
     // Create a variable to store the index of the station with the current maximum range, initialized to 0
-    unsigned int currentMaxStationIndex;
+    unsigned int currentMaxStationIndex = 0;
     int index = 0;
     pEntry entry;
     pStation stack[numberOfStations];
@@ -576,16 +591,6 @@ int planRouteInOrder(pStation root, unsigned int start, unsigned int end) {
                     addVector(stations, currentStation->stationID);
 
                     /*
-                     * We check if the new station has a longer range than the current maximum range, in this case we save it in the queue.
-                     * The queue allows us to be sure not to miss any station with a longer range than the current maximum range
-                     */
-                    if(currentMaxRange < currentStation->stationID + currentStation->cars->array[0]) //fMax < fSi+1
-                        if(currentStation->stationID != end &&
-                          (maxRanges->tail == NULL || maxRanges->tail->maxRange < currentStation->stationID + currentStation->cars->array[0])) //fMax > Si
-
-                            enqueue(maxRanges, (int) currentStation->stationID + (int) currentStation->cars->array[0], index);
-
-                    /*
                      * When the current station cannot reach the next station,
                      * we dequeue the next possible route until a viable route is found or the queue is empty.
                      */
@@ -599,7 +604,7 @@ int planRouteInOrder(pStation root, unsigned int start, unsigned int end) {
                             freeQueue(maxRanges);
                             return 0;
                         }
-                        //if the queue is not empty we dequeue the next possible route and if we can reach it we update the current maximum range
+                        //if the queue is not empty we dequeue the next possible station and if we can reach the dequeued station we update the current maximum range
                         if(currentMaxRange >= stations->array[entry->stationIndex]) {
                             currentMaxRange = entry->maxRange;
                             currentMaxStationIndex = entry->stationIndex;
@@ -610,9 +615,18 @@ int planRouteInOrder(pStation root, unsigned int start, unsigned int end) {
                             freeQueue(maxRanges);
                             return 0;
                         }
-
                         free(entry);
                     }
+
+                    /*
+                     * We check if the new station has a longer range than the current maximum range, in this case we save it in the queue.
+                     * The queue allows us to be sure not to miss any station with a longer range than the current maximum range
+                     */
+                    if(currentMaxRange < currentStation->stationID + currentStation->cars->array[0]) //fMax < fSi+1
+                        if(currentStation->stationID != end &&
+                          (maxRanges->tail == NULL || maxRanges->tail->maxRange < currentStation->stationID + currentStation->cars->array[0])) {
+                            enqueue(maxRanges, (int) currentStation->stationID + (int) currentStation->cars->array[0], index);
+                        }
 
                     addVector(predecessors, currentMaxStationIndex);
                 }
@@ -1025,6 +1039,8 @@ pMaxHeap createMaxHeap() {
 
 void freeQueue(pQueue queue) {
     pEntry temp;
+    if(queue == NULL)
+        return;
     while((temp = dequeue(queue)) != NULL) {
         free(temp);
     }
@@ -1180,3 +1196,4 @@ int readInt(unsigned int *number) {
     else //there are some other number to check
         return 1;
 }
+
