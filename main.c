@@ -458,11 +458,11 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
                 addVector(stations, currentStation->stationID);
                 currentMinRange = (int) currentStation->stationID - (int) currentStation->cars->array[0];
                 currentMinStationIndex = 0;
-                printf("\nStart: %u - MinRange: %d\n", currentStation->stationID, currentMinRange);
+                //printf("\nStart: %u - MinRange: %d\n", currentStation->stationID, currentMinRange);
             } else {
                 //We immediately add the station to the list of stations so that we can retrieve it later
                 addVector(stations, currentStation->stationID);
-               printf("\nStation: %u - fi: %d\n", currentStation->stationID, (int) currentStation->stationID - (int) currentStation->cars->array[0]);
+               //printf("\nStation: %u - fi: %d\n", currentStation->stationID, (int) currentStation->stationID - (int) currentStation->cars->array[0]);
 
                 /*
                  * When the current station cannot reach the next station,
@@ -472,7 +472,7 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
 
                     //if there is not the best candidate we stop
                     if (bestCandidate.stationIndex == -1) {
-                      printf("cannot reach station with %d\n", currentMinRange);
+                      //printf("cannot reach station with %d\n", currentMinRange);
                         freeVector(stations);
                         freeVector(predecessors);
                         return 0;
@@ -481,11 +481,11 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
                     if (currentMinRange <= (int) stations->array[bestCandidate.stationIndex]) {
                         currentMinRange = bestCandidate.maxRange;
                         currentMinStationIndex = bestCandidate.stationIndex;
-                       printf("Dequeued: %u - MinRange: %d\n", stations->array[bestCandidate.stationIndex], currentMinRange);
+                       //printf("Dequeued: %u - MinRange: %d\n", stations->array[bestCandidate.stationIndex], currentMinRange);
                         bestCandidate.stationIndex = -1;
                         bestCandidate.maxRange = -1;
                     } else {
-                      printf("cannot reach station with %d\n", currentMinRange);
+                      //printf("cannot reach station with %d\n", currentMinRange);
                         freeVector(stations);
                         freeVector(predecessors);
                         return 0;
@@ -503,7 +503,7 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
                         if(bestCandidate.maxRange < 0)
                             bestCandidate.maxRange = 0;
                         bestCandidate.stationIndex = index;
-                      printf("Enqueued: %u - fi %d\n", currentStation->stationID, bestCandidate.maxRange);
+                      //printf("Enqueued: %u - fi %d\n", currentStation->stationID, bestCandidate.maxRange);
                     }
 
                 addVector(predecessors, currentMinStationIndex);
