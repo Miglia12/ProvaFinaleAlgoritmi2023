@@ -1,0 +1,23 @@
+TEST REPORT
+
+Test with TestCases/Open/open_1.txt:
+Execution time: 0.02948284149169922 seconds
+Test PASSED!
+Test with TestCases/Open/open_2.txt:
+Execution time: 0.019543170928955078 seconds
+Test PASSED!
+Test with TestCases/Open/open_3.txt:
+Execution time: 0.01823878288269043 seconds
+Test FAILED!
+
+Differences:
+*** Actual Output
+--- Expected Output
+***************
+*** 27,37 ****
+  aggiunta  aggiunta  aggiunta- - Start: 296 - MinRange: 288- - Station: 263 - fi: 237- cannot reach station with 288  nessun percorso  aggiunta  aggiunta--- 27,32 ----
+***************
+*** 58,134 ****
+  aggiunta  aggiunta  aggiunta- - Start: 263 - MinRange: 237- - Station: 258 - fi: 232- Enqueued: 258 - fi 232- - Station: 249 - fi: 223- Enqueued: 249 - fi 223- - Station: 235 - fi: 215- Dequeued: 249 - MinRange: 223- Enqueued: 235 - fi 215- - Station: 230 - fi: 212- Enqueued: 230 - fi 212- - Station: 226 - fi: 209- Enqueued: 226 - fi 209- - Station: 221 - fi: 204- Dequeued: 226 - MinRange: 209- Enqueued: 221 - fi 204- - Station: 216 - fi: 198- Enqueued: 216 - fi 198- - Station: 198 - fi: 178- Dequeued: 216 - MinRange: 198- Enqueued: 198 - fi 178- - Station: 188 - fi: 165- Dequeued: 198 - MinRange: 178- Enqueued: 188 - fi 165- - Station: 181 - fi: 157- Enqueued: 181 - fi 157- - Station: 179 - fi: 156- Enqueued: 179 - fi 156- - Station: 165 - fi: 139- Dequeued: 179 - MinRange: 156- Enqueued: 165 - fi 139- - Station: 161 - fi: 117- Enqueued: 161 - fi 117- - Station: 117 - fi: 73- Dequeued: 161 - MinRange: 117- Enqueued: 117 - fi 73- - Station: 113 - fi: 94- Dequeued: 117 - MinRange: 73- - Station: 95 - fi: 77- - Station: 84 - fi: 63- Enqueued: 84 - fi 63- - Station: 63 - fi: 42- Dequeued: 84 - MinRange: 63- Enqueued: 63 - fi 42- - Station: 62 - fi: 12- Dequeued: 63 - MinRange: 42- Enqueued: 62 - fi 12- - Station: 12 - fi: -38- Dequeued: 62 - MinRange: 12- Enqueued: 12 - fi 0- - Station: 5 - fi: -16- Dequeued: 12 - MinRange: 0  263 249 226 216 198 179 161 117 84 63 62 12 5--- 53,56 ----
+
+--------------------------------------------------
