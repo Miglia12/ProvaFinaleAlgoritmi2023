@@ -52,11 +52,13 @@ def run_test(c_program, input_file, output_file):
         print(f"\nTest FAILED!\n{'-'*50}")
 
         # Generate the differences between the actual and expected outputs
-        diff = difflib.context_diff(actual_output_lines,
-                                    expected_output_lines,
-                                    fromfile='Actual Output',
-                                    tofile='Expected Output')
-        diff_report = "\nDifferences:\n" + ''.join(diff) + '\n'
+        diff_report = "\nDifferences:\n"
+        for i, (actual_line, expected_line) in enumerate(zip(actual_output_lines, expected_output_lines), start=1):
+            if actual_line != expected_line:
+                diff_report += f"Line {i}:\n"
+                diff_report += f"Expected: {expected_line}\n"
+                diff_report += f"Actual: {actual_line}\n"
+        diff_report += "\n"
 
         print(diff_report)
 
