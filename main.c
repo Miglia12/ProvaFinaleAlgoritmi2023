@@ -26,15 +26,36 @@ typedef enum action{
 }Action;
 /* Data Structures */
 /*
- * Description: struct to store maxRange and stationIndex (used in planRoute)
+ * Description: Element of a linked list
  * Values:
- *  - maxRange: sum of the maximum range of the cars in the station and the stationID
+ *  - minRange: sum of the maximum range of the cars in the station and the stationID
  *  - stationIndex: index of the station in the vector
  */
-typedef struct pair{
-    int maxRange;
+typedef struct Element {
+    int minRange;
     int stationIndex;
-}Pair;
+    int steps;
+    struct Element* next;
+} Element;
+/*
+ * Description: pointer to an Element
+ */
+typedef struct Element* pElement;
+/*
+ * Description: LinkedList struct to store the stations in the route
+ * Values:
+ * - head: pointer to the first node
+ */
+typedef struct LinkedList {
+    Element* head;
+    int bestMinRange;
+    int bestStationIndex;
+    int bestSteps;
+} LinkedList;
+/*
+ * Description: pointer to a LinkedList
+ */
+typedef struct LinkedList* pLinkedList;
 /*
  * Description: struct to store maxRange and stationIndex (used in planRoute)
  * Values:
@@ -144,6 +165,40 @@ int readInt(unsigned int *number);
  * Returns: the action read
  */
 Action readAction();
+/*
+ * Function: newLinkedList
+ * Description: creates a new linked list
+ * Parameters: void
+ * Returns: pointer to the new linked list
+ */
+pLinkedList newLinkedList();
+/*
+ * Function: createElement
+ * Description: creates a new element
+ * Parameters:
+ *  - minRange: sum of the maximum range of the cars in the station and the stationID
+ *  - stationIndex: index of the station in the vector
+ *  Returns: pointer to the new element
+ */
+pElement createElement(int minRange, int stationIndex, int steps);
+/*
+ * Function: insertLinked
+ * Description: inserts a new element in the linked list
+ * Parameters:
+ *  - list: pointer to the linked list
+ *  - minRange: sum of the maximum range of the cars in the station and the stationID
+ *  - stationIndex: index of the station in the vector
+ *  Returns: void
+ */
+void insertLinked(LinkedList *list, int minRange, int stationIndex, int steps);
+/*
+ * Function: freeLinkedList
+ * Description: frees the memory allocated for the linked list
+ * Parameters:
+ *  - list: pointer to the linked list to free
+ *  Returns: void
+ */
+void freeLinkedList(LinkedList* list);
 /*
  * Function: newQueue
  * Description: creates a new queue
@@ -353,7 +408,7 @@ int main() {
         switch (action) {
             case ADDSTATION: //the input said to add a station
                 readInt(&stationID); //read the station id
-                station = addStation(&root, stationID); //insert the station in the tree
+                station = addStation(&root, stationID); //insertLinked the station in the tree
                 if(station == NULL){ //if the station was already in the tree
                     while (readInt(&carID) != 0 && carID != 0); //WARNING: this is a workaround I'm not sure if I should add the cars or not
                     printf("non aggiunta\n");
@@ -361,10 +416,10 @@ int main() {
                 else{ //if the station was not in the tree
                     if(readInt(&carID) != 0) {
                         while (readInt(&carID) != 0 && carID != 0) { //read the cars in the station until the last one is read
-                            addCar(station->cars, carID); //insert the car in the station
+                            addCar(station->cars, carID); //insertLinked the car in the station
                         }
                         if(carID != 0)
-                            addCar(station->cars, carID);//insert the last car in the station
+                            addCar(station->cars, carID);//insertLinked the last car in the station
                     }
                     printf("aggiunta\n");
                 }
@@ -387,7 +442,7 @@ int main() {
                     printf("non aggiunta\n");
                 } else {
                     readInt(&carID); //read the car id
-                    addCar(station->cars, carID);//insert the car in the station
+                    addCar(station->cars, carID);//insertLinked the car in the station
                     printf("aggiunta\n");
                 }
                 break;
@@ -424,9 +479,9 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
         return 0;
     //printf("\nPlanning Route in Reverse from %u to %u\n", start, end);
     pStation currentStation = root;
-    Pair bestCandidate;
-    bestCandidate.maxRange = -1;
-    bestCandidate.stationIndex = -1;
+    pLinkedList listOfCandidates = newLinkedList();
+    pElement currentElement = NULL;
+    pElement bestCandidate = NULL;
     // Create an empty vector that will be used to store all the stations in the range, allowing to retrieve each station at each step
     pVector stations = newVector((int) (numberOfStations * VECTOR_SIZE_FACTOR));
     // Create an empty vector that will be used to store the predecessors of each station. This will allow to retrieve the path at the end
@@ -436,6 +491,7 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
     // Create a variable to store the index of the station with the current maximum range, initialized to 0
     unsigned int currentMinStationIndex = 0;
     int index = 0;
+    int steps = 0;
     pStation stack[numberOfStations];
     int topElementStack = -1;
 
@@ -471,25 +527,35 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
                 if((int) currentMinRange > (int) currentStation->stationID) {
 
                     //if there is not the best candidate we stop
-                    if (bestCandidate.stationIndex == -1) {
+                    if (listOfCandidates->head == NULL) {
                         //printf("cannot reach station with %d\n", currentMinRange);
                         freeVector(stations);
                         freeVector(predecessors);
+                        freeLinkedList(listOfCandidates);
                         return 0;
                     }
-                    //if the best is present, we check if we can reach it and if we can we update the current minimum range
-                    if (currentMinRange <= (int) stations->array[bestCandidate.stationIndex]) {
-                        currentMinRange = bestCandidate.maxRange;
-                        currentMinStationIndex = bestCandidate.stationIndex;
-                        //printf("Dequeued: %u - MinRange: %d\n", stations->array[bestCandidate.stationIndex], currentMinRange);
-                        bestCandidate.stationIndex = -1;
-                        bestCandidate.maxRange = -1;
-                    } else {
-                        //printf("cannot reach station with %d\n", currentMinRange);
-                        freeVector(stations);
-                        freeVector(predecessors);
-                        return 0;
+                    //if the linked list has at least one element, we have to look for the best station (lower number of steps tp reach the new station and the further away)
+                   currentElement = listOfCandidates->head;
+                    while(currentElement != NULL) {
+                        if(currentElement->minRange <= (int) currentStation->stationID) {//if the element can reach the new station
+                            if(currentMinRange <= (int) stations->array[currentElement->stationIndex]) { //and if the current station can reach the new element
+                                if(bestCandidate == NULL)
+                                    bestCandidate = currentElement; //it becomes the best candidate
+                                else {
+                                    if(currentElement->steps < bestCandidate->steps) //if we find a station that can do the same but in less steps
+                                        bestCandidate = currentElement;
+                                }
+                            }
+                        }
+                        currentElement = currentElement->next;
                     }
+                    if(bestCandidate == NULL)
+                        return 0;
+                    currentMinRange = bestCandidate->minRange;
+                    steps = bestCandidate->steps + 1;
+                    currentMinStationIndex = bestCandidate->stationIndex;
+                    //printf("Dequeued: %u - fi %d - steps %d\n", stations->array[bestCandidate->stationIndex], currentMinRange, steps);
+                    bestCandidate = NULL;
                 }
 
                 /*
@@ -497,13 +563,11 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
                  * The queue allows us to be sure not to miss any station with a longer range than the current maximum range
                  */
                 if(currentMinRange >= (int) currentStation->stationID - (int) currentStation->cars->array[0])
-                    if(currentStation->stationID != end &&
-                       (bestCandidate.maxRange == -1 || (int) bestCandidate.maxRange >= (int) currentStation->stationID - (int) currentStation->cars->array[0])) {
-                        bestCandidate.maxRange = (int) currentStation->stationID - (int) currentStation->cars->array[0];
-                        if(bestCandidate.maxRange < 0)
-                            bestCandidate.maxRange = 0;
-                        bestCandidate.stationIndex = index;
-                        //printf("Enqueued: %u - fi %d\n", currentStation->stationID, bestCandidate.maxRange);
+                    if(currentStation->stationID != end) {
+
+                        insertLinked(listOfCandidates,
+                                     (int) currentStation->stationID - (int) currentStation->cars->array[0], index, steps);
+                        //printf("Enqueued: %u - fi %d - steps %d\n", currentStation->stationID, listOfCandidates->head->minRange, steps);
                     }
 
                 addVector(predecessors, currentMinStationIndex);
@@ -531,6 +595,7 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
     freeVector(path);
     freeVector(stations);
     freeVector(predecessors);
+    freeLinkedList(listOfCandidates);
     return 1;
 }
 
@@ -1017,7 +1082,7 @@ void addCar(pMaxHeap maxHeap, unsigned int carID) {
     if(maxHeap->numOfCars == MAX_SIZE_CARS) {
         exit(6);
     }
-    // First insert the new number at the end
+    // First insertLinked the new number at the end
     int i = maxHeap->numOfCars;
     maxHeap->array[i] = carID;
     maxHeap->numOfCars++;
@@ -1131,6 +1196,54 @@ Vector *newVector(int size) {
     vector->size = size;
 
     return vector;
+}
+
+pLinkedList newLinkedList() {
+    LinkedList* list = (LinkedList*)malloc(sizeof(LinkedList));
+    list->head = NULL;
+    list->bestMinRange = -1;
+    list->bestStationIndex = -1;
+    list->bestSteps = -1;
+    return list;
+}
+
+pElement createElement(int minRange, int stationIndex, int steps) {
+    pElement newElement = (pElement)malloc(sizeof(Element));
+    newElement->minRange = minRange;
+    newElement->stationIndex = stationIndex;
+    newElement->steps = steps;
+    newElement->next = NULL;
+    return newElement;
+}
+
+void insertLinked(LinkedList *list, int minRange, int stationIndex, int steps) {
+    Element* newElement = createElement(minRange, stationIndex, steps);
+    if(list->bestMinRange == -1) {
+        list->bestMinRange = minRange;
+        list->bestSteps = steps;
+        list->bestStationIndex = stationIndex;
+    } else {
+        if(list->bestMinRange >= minRange && list->bestSteps >= steps) {
+            list->bestMinRange = minRange;
+            list->bestSteps = steps;
+            list->bestStationIndex = stationIndex;
+        }
+    }
+    newElement->next = list->head;
+    list->head = newElement;
+}
+
+void freeLinkedList(LinkedList* list) {
+    Element* current = list->head;
+    Element* next;
+
+    while (current != NULL) {
+        next = current->next;
+        free(current);
+        current = next;
+    }
+
+    free(list);
 }
 
 Action readAction() {
