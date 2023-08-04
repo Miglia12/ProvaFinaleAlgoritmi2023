@@ -40,9 +40,9 @@ def run_test(c_program, input_file, output_file):
     with open(output_file, "r") as outfile:
         expected_output = outfile.read()
 
-    # Trim trailing spaces from each line
-    actual_output_lines = [line.rstrip() for line in result.stdout.splitlines()]
-    expected_output_lines = [line.rstrip() for line in expected_output.splitlines()]
+    # Do not trim trailing spaces from each line
+    actual_output_lines = result.stdout.splitlines()
+    expected_output_lines = expected_output.splitlines()
 
     # Compare the program output with the expected output
     if actual_output_lines == expected_output_lines:
