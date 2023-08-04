@@ -434,7 +434,7 @@ int main() {
                 readInt(&stationID); //read the station id
                 station = addStation(&root, stationID); //insertLinked the station in the tree
                 if(station == NULL){ //if the station was already in the tree
-                    while (readInt(&carID) != 0 && carID != 0); //WARNING: this is a workaround I'm not sure if I should add the cars or not
+                    while (readInt(&carID) != 0); //WARNING: this is a workaround I'm not sure if I should add the cars or not
                     printf("non aggiunta\n");
                 }
                 else{ //if the station was not in the tree
@@ -442,7 +442,7 @@ int main() {
                         while (readInt(&carID) != 0) { //read the cars in the station until the last one is read
                             addCar(station->cars, carID); //insertLinked the car in the station
                         }
-                        if(carID != 0)
+                        //if(carID != 0)
                             addCar(station->cars, carID);//insertLinked the last car in the station
                     }
                     printf("aggiunta\n");
@@ -611,9 +611,10 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
         index = (int) predecessors->array[index];
     }
     addVector(path, stations->array[0]);
-    for(index = path->numberOfElements - 1; index >= 0; index--){
+    for(index = path->numberOfElements - 1; index >= 1; index--){
         printf("%u ", path->array[index]);
     }
+    printf("%u", path->array[0]);
     printf("\n");
 
     freeVector(path);
@@ -733,9 +734,10 @@ int planRouteInOrder(pStation root, unsigned int start, unsigned int end) {
         index = (int) predecessors->array[index];
     }
     addVector(path, stations->array[0]);
-    for(index = path->numberOfElements - 1; index >= 0; index--){
+    for(index = path->numberOfElements - 1; index >= 1; index--){
         printf("%u ", path->array[index]);
     }
+    printf("%u", path->array[0]);
     printf("\n");
 
     freeVector(path);
