@@ -439,7 +439,7 @@ int main() {
                 }
                 else{ //if the station was not in the tree
                     if(readInt(&carID) != 0) {
-                        while (readInt(&carID) != 0 && carID != 0) { //read the cars in the station until the last one is read
+                        while (readInt(&carID) != 0) { //read the cars in the station until the last one is read
                             addCar(station->cars, carID); //insertLinked the car in the station
                         }
                         if(carID != 0)
