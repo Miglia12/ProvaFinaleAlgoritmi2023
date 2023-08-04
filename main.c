@@ -587,7 +587,7 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
                  * The queue allows us to be sure not to miss any station with a longer range than the current maximum range
                  */
                 if(currentMinRange >= (int) currentStation->stationID - (int) currentStation->cars->array[0])
-                    if(currentStation->stationID != end) {
+                    if(currentStation->stationID != end && currentStation->cars->numOfCars > 0) {
 
                         insertLinked(listOfCandidates,
                                      (int) currentStation->stationID - (int) currentStation->cars->array[0], index, steps);
@@ -627,7 +627,7 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end) {
 int planRouteInOrder(pStation root, unsigned int start, unsigned int end) {
     if(root == NULL)
         return 0;
-   // printf("\nPlanning Route in order from %u to %u\n", start, end);
+    //printf("\nPlanning Route in order from %u to %u\n", start, end);
     pStation currentStation = root;
     // Create an empty queue that will be used to store the stations that have longer range than the current station
     pQueue maxRanges = newQueue();
@@ -652,7 +652,7 @@ int planRouteInOrder(pStation root, unsigned int start, unsigned int end) {
             currentStation = currentStation->left;
         }
 
-        // The current node is NULL at this point so we pop an element from the stack
+        // The current node is NULL at this point. We have to pop an element from the stack
         currentStation = stack[topElementStack--];
 
         // The current node should be in the given range
@@ -667,12 +667,12 @@ int planRouteInOrder(pStation root, unsigned int start, unsigned int end) {
                     addVector(stations, currentStation->stationID);
                     currentMaxRange = currentStation->stationID + currentStation->cars->array[0];
                     currentMaxStationIndex = 0;
-                   // printf("\nStart: %u - MaxRange: %d\n", currentStation->stationID, currentMaxRange);
+                    //printf("\nStart: %u - MaxRange: %d\n", currentStation->stationID, currentMaxRange);
                 } else {
 
                     //We immediately add the station to the list of stations so that we can retrieve it later
                     addVector(stations, currentStation->stationID);
-                   // printf("\nStation: %u - fi: %d\n", currentStation->stationID, (int) currentStation->stationID - (int) currentStation->cars->array[0]);
+                    //printf("\nStation: %u - fi: %d\n", currentStation->stationID, (int) currentStation->stationID - (int) currentStation->cars->array[0]);
                     /*
                      * When the current station cannot reach the next station,
                      * we dequeue the next possible route until a viable route is found or the queue is empty.
@@ -692,9 +692,9 @@ int planRouteInOrder(pStation root, unsigned int start, unsigned int end) {
                         if(currentMaxRange >= stations->array[entry->stationIndex]) {
                             currentMaxRange = entry->maxRange;
                             currentMaxStationIndex = entry->stationIndex;
-                           // printf("Dequeued: %u - MinRange: %d\n", stations->array[entry->stationIndex], currentMaxRange);
+                            //printf("Dequeued: %u - MinRange: %d\n", stations->array[entry->stationIndex], currentMaxRange);
                         } else {
-                           // printf("cannot reach station with %d\n", currentMaxRange);
+                            //printf("cannot reach station with %d\n", currentMaxRange);
                             free(entry);
                             freeVector(stations);
                             freeVector(predecessors);
@@ -708,11 +708,11 @@ int planRouteInOrder(pStation root, unsigned int start, unsigned int end) {
                      * We check if the new station has a longer range than the current maximum range, in this case we save it in the queue.
                      * The queue allows us to be sure not to miss any station with a longer range than the current maximum range
                      */
-                    if(currentMaxRange < currentStation->stationID + currentStation->cars->array[0]) //fMax < fSi+1
+                    if(currentStation->cars->numOfCars > 0 && currentMaxRange < currentStation->stationID + currentStation->cars->array[0] ) //fMax < fSi+1
                         if(currentStation->stationID != end &&
                            (maxRanges->tail == NULL || maxRanges->tail->maxRange < currentStation->stationID + currentStation->cars->array[0])) {
                             enqueue(maxRanges, (int) currentStation->stationID + (int) currentStation->cars->array[0], index);
-                           // printf("Enqueued: %u - fi %d\n", currentStation->stationID, (int) currentStation->stationID - (int) currentStation->cars->array[0]);
+                            //("Enqueued: %u - fi %d\n", currentStation->stationID, (int) currentStation->stationID - (int) currentStation->cars->array[0]);
                         }
 
                     addVector(predecessors, currentMaxStationIndex);
