@@ -394,8 +394,32 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end);
  */
 void planRoute(pStation root, unsigned int start, unsigned int end);
 
+void searchAndPrintCars(pStation root) {
+    unsigned int searchStationID = 497;
+    pStation currentStation = root;
+
+    while (currentStation != NULL) {
+        if (searchStationID == currentStation->stationID) {
+            // Found the station, now print the cars
+            printf("Station %u:\n", searchStationID);
+            for (int i = 0; i < currentStation->cars->numOfCars; i++) {
+                printf("Car %d: %d\n", i+1, currentStation->cars->array[i]);
+            }
+            return;
+        } else if (searchStationID < currentStation->stationID) {
+            currentStation = currentStation->left;
+        } else {
+            currentStation = currentStation->right;
+        }
+    }
+
+    // If we reach here, it means the station was not found
+    printf("Station %u not found.\n", searchStationID);
+}
+
 /* Global variables */
 unsigned int numberOfStations = 0; //number of stations in the tree
+
 
 int main() {
     Action action; //action to perform
@@ -830,6 +854,7 @@ int removeStation(pStation* root, unsigned int stationID) {
     pStation node = *root;
     pStation temp;
     pStation successor;
+    int i;
 
     while (node != NULL) {// Search for the station with the given pair1
         if (stationID == node->stationID)
@@ -868,12 +893,18 @@ int removeStation(pStation* root, unsigned int stationID) {
     else// If the successor is a right child
         successor->parent->right = temp;
 
-    if (successor != node)
+    if (successor != node) {
         node->stationID = successor->stationID;
+        node->cars->numOfCars = successor->cars->numOfCars;
+        for(i = 0; i < node->cars->numOfCars; i++)
+            node->cars->array[i] = successor->cars->array[i];
+    }
 
     if (successor->color == BLACK)// If the successor is black, fix the tree
         fixDelete(root, temp, successor->parent);
 
+
+    free(successor->cars);
     free(successor);
     numberOfStations--;
     return 1;
