@@ -394,29 +394,6 @@ int planRouteReverseOrder(pStation root, unsigned int start, unsigned int end);
  */
 void planRoute(pStation root, unsigned int start, unsigned int end);
 
-void searchAndPrintCars(pStation root) {
-    unsigned int searchStationID = 497;
-    pStation currentStation = root;
-
-    while (currentStation != NULL) {
-        if (searchStationID == currentStation->stationID) {
-            // Found the station, now print the cars
-            printf("Station %u:\n", searchStationID);
-            for (int i = 0; i < currentStation->cars->numOfCars; i++) {
-                printf("Car %d: %d\n", i+1, currentStation->cars->array[i]);
-            }
-            return;
-        } else if (searchStationID < currentStation->stationID) {
-            currentStation = currentStation->left;
-        } else {
-            currentStation = currentStation->right;
-        }
-    }
-
-    // If we reach here, it means the station was not found
-    printf("Station %u not found.\n", searchStationID);
-}
-
 /* Global variables */
 unsigned int numberOfStations = 0; //number of stations in the tree
 
