@@ -745,7 +745,7 @@ void planRoute(pStation root, unsigned int start, unsigned int end) {
 pStation searchStation(pStation* root, unsigned int stationID) {
     pStation node = *root;
 
-    while (node != NULL) {// Search for the station with the given pair1
+    while (node != NULL) {
         if (stationID == node->stationID)
             break;
 
@@ -1058,8 +1058,8 @@ void restoreHeapProperty(MaxHeap* maxHeap, int idx) {
     int largest;
 
     do {
-        int left = (idx << 1) + 1; // left = 2*idx + 1
-        int right = (idx + 1) << 1; // right = 2*idx + 2
+        int left = (idx * 2) + 1;
+        int right = (idx + 1) * 2;
 
         largest = idx;
 
